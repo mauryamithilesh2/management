@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Tasks</h1>
+    <p class="card-subtitle">
+        {% if is_admin %}
+            All tasks across the system.
+        {% else %}
+            Tasks assigned to you.
+        {% endif %}
+    </p>
+
+    {% if tasks %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Assigned Employee</th>
+                    <th>Priority</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</td>
+                        <td>{{ task.get_priority_display }}</td>
+                        <td>{{ task.deadline }}</td>
+                        <td>
+                            <span class="badge badge-status-{{ task.status|lower }}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ task.created_at|date:"N j, Y" }}</td>
+                        <td>
+                            <a class="nav-link" href="{% url 'task_detail' task.id %}">
+                                View
+                            </a>     
+                            <a class="nav-link" href="{% url 'task_edit' task.id %}">
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="placeholder-note">No tasks to show yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

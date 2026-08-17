@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Task - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Delete Task</h1>
+
+    <p>
+        Are you sure you want to delete:
+        <strong>{{ task.title }}</strong>?
+    </p>
+
+    <p class="field-hint">
+        This action cannot be undone.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <button type="submit" class="btn btn-danger">
+            Delete Task
+        </button>
+
+        <a href="{% url 'task_detail' task.id %}" class="btn btn-secondary">
+            Cancel
+        </a>
+    </form>
+</div>
+{% endblock %}

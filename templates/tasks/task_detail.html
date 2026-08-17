@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Task Details - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">{{ task.title }}</h1>
+
+    <p class="card-subtitle">
+        Task Details
+    </p>
+
+    <div class="form-group">
+        <strong>Description</strong>
+        <p>{{ task.description|default:"No description provided." }}</p>
+    </div>
+
+    <div class="form-group">
+        <strong>Assigned Employee</strong>
+        <p>
+            {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+        </p>
+    </div>
+
+    <div class="form-group">
+        <strong>Created By</strong>
+        <p>
+            {{ task.created_by.get_full_name|default:task.created_by.username }}
+        </p>
+    </div>
+
+    <div class="form-group">
+        <strong>Start Date</strong>
+        <p>{{ task.start_date }}</p>
+    </div>
+
+    <div class="form-group">
+        <strong>Deadline</strong>
+        <p>{{ task.deadline }}</p>
+    </div>
+
+    <div class="form-group">
+        <strong>Status</strong>
+        <p>
+            <span class="badge badge-status-{{ task.status|lower }}">
+                {{ task.get_status_display }}
+            </span>
+        </p>
+    </div>
+
+    <div class="form-group">
+        <strong>Priority</strong>
+        <p>{{ task.get_priority_display }}</p>
+    </div>
+
+    <div class="form-group">
+        <strong>Created</strong>
+        <p>{{ task.created_at|date:"N j, Y, P" }}</p>
+    </div>
+
+    <div class="form-group">
+        <strong>Last Updated</strong>
+        <p>{{ task.updated_at|date:"N j, Y, P" }}</p>
+    </div>
+
+    <a href="{% url 'task_list' %}" class="btn btn-secondary">
+        Back to Tasks
+    </a>
+    {% if user.is_admin_role or task.assigned_to == user %}
+    <a href="{% url 'task_edit' task.id %}" class="btn btn-primary">
+        Edit
+    </a>
+
+    <a href="{% url 'task_delete' task.id %}" class="btn btn-danger">
+        Delete
+    </a>
+{% endif %}
+</div>
+{% endblock %}

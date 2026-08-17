@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Dashboard - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Employee Dashboard</h1>
+    <p class="card-subtitle">
+        Welcome, {{ user.get_full_name|default:user.username }} -
+        <span class="badge badge-role-{{ user.role|lower }}">{{ user.get_role_display }}</span>
+    </p>
+    <p class="placeholder-note">
+        Authentication and role-based access are working. Task statistics
+        and the rest of the employee dashboard will be implemented in an
+        upcoming phase.
+    </p>
+</div>
+{% endblock %}
+

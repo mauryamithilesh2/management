@@ -1,0 +1,9 @@
+Django==5.2
+python-dotenv==1.2.2
+dj-database-url==3.1.2
+
+# Uncomment when deploying against PostgreSQL:
+# psycopg[binary]==3.2.3
+
+# Add djangorestframework here in a later phase if/when API endpoints
+# are actually needed (per project rules: only used "where useful").

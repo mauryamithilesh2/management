@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Admin Dashboard</h1>
+    <p class="card-subtitle">
+        Signed in as
+        <span class="badge badge-role-{{ user.role|lower }}">{{ user.get_role_display }}</span>
+    </p>
+    <p class="placeholder-note">
+        This page is only reachable by users with the Admin role - it is
+        protected server-side, not just hidden from the navigation. User
+        management, task management, and admin request review will be
+        built here in later phases.
+    </p>
+</div>
+{% endblock %}

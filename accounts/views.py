@@ -1,0 +1,137 @@
+from django.contrib import messages
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
+
+from .forms import ProfileForm, StyledAuthenticationForm, StyledPasswordChangeForm
+from .permissions import admin_required
+from .forms import AdminCreateEmployeeForm
+
+class LoginView(auth_views.LoginView):
+    """
+    Thin wrapper around Django's built-in LoginView.
+
+    Django's LoginView already handles CSRF, password hashing/checking via
+    the auth backend, and honours `is_active` (inactive users are rejected
+    automatically by AuthenticationForm). We only customise the template
+    and widget styling.
+    """
+
+    template_name = "accounts/login.html"
+    authentication_form = StyledAuthenticationForm
+    redirect_authenticated_user = True
+
+
+class LogoutView(auth_views.LogoutView):
+    """Thin wrapper so logout is available via a named URL and POST-only by default."""
+
+    next_page = "login"
+
+
+@login_required
+def post_login_redirect(request):
+    """
+    Landing page shown right after login.
+
+    Admins are sent straight to their dedicated dashboard route so that
+    the "Dashboard" nav link always resolves consistently for both roles.
+    Employees see a role-labelled placeholder here ("Employee Dashboard").
+    No statistics/content yet - that's a later phase.
+    """
+    if request.user.is_admin_role:
+        return redirect("admin_dashboard")
+    return render(request, "accounts/home.html", {"user": request.user})
+
+
+@admin_required
+def admin_dashboard(request):
+    """
+    Placeholder administrator dashboard.
+
+    This is deliberately just a placeholder - the real admin dashboard
+    (statistics, links to user management/task management/admin requests)
+    is out of scope for this phase. What matters is that the route exists
+    and is server-side protected: only authenticated users with
+    role=ADMIN can reach it, enforced by `admin_required` rather than by
+    hiding a link in the UI.
+    """
+    return render(request, "accounts/admin_dashboard.html", {"user": request.user})
+
+
+@login_required
+def profile(request):
+    """
+    Lets the currently logged-in user view and edit their own profile.
+
+    Security note: this view only ever reads/writes `request.user` - the
+    user object Django's session middleware attached based on the
+    authenticated session. There is no user id taken from the URL or from
+    POST data, so there is no way to point this view at a different
+    account; a user can never view or modify anyone else's information
+    through this endpoint, regardless of what a manually crafted request
+    contains.
+
+    `ProfileForm` only exposes first_name/last_name/email as fields, so
+    even if a request includes extra POST keys like `role` or `is_active`
+    (e.g. from a hand-crafted request bypassing the UI), Django's
+    ModelForm simply ignores unknown/non-form fields - those attributes
+    are never read from `request.POST` and can't be changed this way.
+    """
+    if request.method == "POST":
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated.")
+            return redirect("profile")
+    else:
+        form = ProfileForm(instance=request.user)
+
+    return render(request, "accounts/profile.html", {"form": form})
+
+
+class PasswordChangeView(auth_views.PasswordChangeView):
+    """
+    Thin wrapper around Django's built-in PasswordChangeView.
+
+    Django handles: requiring the correct current password, validating
+    the new password against AUTH_PASSWORD_VALIDATORS, hashing it with
+    the configured hasher (never custom/home-grown hashing), and
+    invalidating other sessions for the account via
+    `update_session_auth_hash`. We only customise the template and add a
+    success message, then send the user back to their profile page.
+    """
+
+    template_name = "accounts/password_change.html"
+    form_class = StyledPasswordChangeForm
+    success_url = reverse_lazy("profile")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Your password has been changed successfully.")
+        return response
+
+
+@login_required
+@admin_required
+def create_employee(request):
+    if request.method == "POST":
+        form = AdminCreateEmployeeForm(request.POST)
+
+        if form.is_valid():
+            user = form.save()
+
+            messages.success(
+                request,
+                f"Employee '{user.username}' created successfully."
+            )
+
+            return redirect("admin_dashboard")
+    else:
+        form = AdminCreateEmployeeForm()
+
+    return render(
+        request,
+        "accounts/create_employee.html",
+        {"form": form},
+    )
