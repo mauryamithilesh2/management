@@ -40,6 +40,9 @@ class User(AbstractUser):
         default=Role.EMPLOYEE,
         help_text="Determines what the user is permitted to do in the system.",
     )
+    phone = models.CharField(max_length=20, blank=True)
+    department = models.CharField(max_length=100, blank=True)
+    designation = models.CharField(max_length=100, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     objects = ETMSUserManager()

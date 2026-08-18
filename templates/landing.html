@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}KS Management Portal | Task Management System{% endblock %}
+
+{% block content %}
+<section class="landing-hero" id="overview">
+    <div class="hero-copy">
+        <div class="eyebrow"><span class="status-dot"></span> OPERATIONAL TASK CONTROL</div>
+        <h1>Control work.<br><span>Track execution.</span></h1>
+        <p class="hero-lead">
+            KS Management Portal provides a structured workspace for assigning, executing and monitoring
+            employee tasks across day-to-day operations.
+        </p>
+
+        <div class="hero-actions">
+            {% if user.is_authenticated %}
+                <a href="{% if user.is_admin_role %}{% url 'admin_dashboard' %}{% else %}{% url 'post_login_redirect' %}{% endif %}" class="industrial-btn industrial-btn-primary">
+                    Open Dashboard <span>→</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="industrial-btn industrial-btn-primary">
+                    Access System <span>→</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="system-panel" aria-label="KS Management Portal system overview">
+
+        <div class="panel-heading">
+            <span>OPERATIONS STATUS</span>
+            <span class="panel-code">KS-OPS</span>
+        </div>
+
+        <div class="system-status">
+            <span class="status-dot"></span>
+            SYSTEM OPERATIONAL
+        </div>
+
+        {% if user.is_authenticated %}
+
+            <div class="system-row">
+                <span>ACTIVE USERS</span>
+                <strong>{{ active_users }}</strong>
+            </div>
+
+            <div class="system-row">
+                <span>TOTAL TASKS</span>
+                <strong>{{ total_tasks }}</strong>
+            </div>
+
+            <div class="system-row">
+                <span>IN PROGRESS</span>
+                <strong>{{ in_progress_tasks }}</strong>
+            </div>
+
+            <div class="system-row">
+                <span>COMPLETED</span>
+                <strong class="status-text">{{ completed_tasks }}</strong>
+            </div>
+
+            <div class="system-row">
+                <span>BLOCKED</span>
+                <strong>{{ blocked_tasks }}</strong>
+            </div>
+
+        {% else %}
+
+            <div class="system-row">
+                <span>PLATFORM</span>
+                <strong>TASK OPERATIONS</strong>
+            </div>
+
+            <div class="system-row">
+                <span>ACCESS</span>
+                <strong>CONTROLLED</strong>
+            </div>
+
+            <div class="system-row">
+                <span>WORKFLOW</span>
+                <strong>ASSIGN / EXECUTE / TRACK</strong>
+            </div>
+
+            <div class="system-row">
+                <span>STATUS</span>
+                <strong class="status-text">ONLINE</strong>
+            </div>
+
+        {% endif %}
+        <div class="panel-footer">
+            TASK MANAGEMENT / OPERATIONAL CONTROL
+        </div>
+
+    </div>
+</section>
+{% endblock %}

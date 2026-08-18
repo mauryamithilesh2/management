@@ -3,17 +3,78 @@
 {% block title %}Employee Dashboard - Employee Task Management System{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1 class="card-title">Employee Dashboard</h1>
-    <p class="card-subtitle">
-        Welcome, {{ user.get_full_name|default:user.username }} -
-        <span class="badge badge-role-{{ user.role|lower }}">{{ user.get_role_display }}</span>
-    </p>
-    <p class="placeholder-note">
-        Authentication and role-based access are working. Task statistics
-        and the rest of the employee dashboard will be implemented in an
-        upcoming phase.
-    </p>
-</div>
-{% endblock %}
 
+<div class="dashboard-header">
+    <div>
+        <h1 class="card-title">Employee Dashboard</h1>
+
+        <p class="card-subtitle">
+            Welcome back, {{ user.get_full_name|default:user.username }}.
+            Manage your assigned tasks and track your progress.
+        </p>
+    </div>
+
+    <span class="badge badge-role-employee">
+        Employee
+    </span>
+</div>
+
+
+<div class="dashboard-grid">
+
+    <div class="stat-card">
+        <div class="stat-label">My Tasks</div>
+        <div class="stat-value">{{ total_tasks }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">To Do</div>
+        <div class="stat-value">{{ todo_tasks }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value">{{ in_progress_tasks }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value">{{ completed_tasks }}</div>
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <h2 class="section-title">Quick Actions</h2>
+
+    <div class="action-grid">
+
+        <a href="{% url 'task_list' %}" class="action-card">
+            <strong>My Tasks</strong>
+            <span>View all tasks assigned to you.</span>
+        </a>
+
+        <a href="{% url 'profile' %}" class="action-card">
+            <strong>My Profile</strong>
+            <span>View and update your profile.</span>
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <h2 class="section-title">My Work</h2>
+
+    <p class="placeholder-note">
+        Your assigned tasks, upcoming deadlines and task progress
+        will appear here.
+    </p>
+
+</div>
+
+{% endblock %}

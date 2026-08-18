@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Edit User</h1>
+
+    <p class="card-subtitle">
+        Update account information for {{ user_obj.username }}.
+    </p>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">
+                    {{ field.label }}
+                </label>
+
+                {{ field }}
+
+                {% if field.errors %}
+                    <div class="field-error">
+                        {{ field.errors|join:", " }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">
+            Save Changes
+        </button>
+
+        <a href="{% url 'user_list' %}" class="btn btn-secondary">
+            Cancel
+        </a>
+    </form>
+</div>
+{% endblock %}

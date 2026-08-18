@@ -40,11 +40,8 @@
                         </td>
                         <td>{{ task.created_at|date:"N j, Y" }}</td>
                         <td>
-                            <a class="nav-link" href="{% url 'task_detail' task.id %}">
+                            <a class="btn btn-secondary" href="{% url 'task_detail' task.id %}">
                                 View
-                            </a>     
-                            <a class="nav-link" href="{% url 'task_edit' task.id %}">
-                                Edit
                             </a>
                         </td>
                     </tr>

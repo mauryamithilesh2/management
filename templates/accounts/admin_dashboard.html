@@ -3,17 +3,87 @@
 {% block title %}Admin Dashboard - Employee Task Management System{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1 class="card-title">Admin Dashboard</h1>
-    <p class="card-subtitle">
-        Signed in as
-        <span class="badge badge-role-{{ user.role|lower }}">{{ user.get_role_display }}</span>
-    </p>
-    <p class="placeholder-note">
-        This page is only reachable by users with the Admin role - it is
-        protected server-side, not just hidden from the navigation. User
-        management, task management, and admin request review will be
-        built here in later phases.
-    </p>
+
+<div class="dashboard-header">
+    <div>
+        <h1 class="card-title">Admin Dashboard</h1>
+        <p class="card-subtitle">
+            Welcome back, {{ user.get_full_name|default:user.username }}.
+            Manage employees, tasks and system activity.
+        </p>
+    </div>
+
+    <span class="badge badge-role-admin">
+        Administrator
+    </span>
 </div>
+
+
+<div class="dashboard-grid">
+
+    <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value">{{ total_users }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Employees</div>
+        <div class="stat-value">{{ total_employees }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Active Users</div>
+        <div class="stat-value">{{ active_users }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Total Tasks</div>
+        <div class="stat-value">{{ total_tasks }}</div>
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <h2 class="section-title">Quick Actions</h2>
+
+    <div class="action-grid">
+
+        <a href="{% url 'create_employee' %}" class="action-card">
+            <strong>Create User</strong>
+            <span>Create a new employee or admin account.</span>
+        </a>
+
+        <a href="{% url 'user_list' %}" class="action-card">
+            <strong>Manage Users</strong>
+            <span>View and manage all users.</span>
+        </a>
+
+        <a href="{% url 'task_list' %}" class="action-card">
+            <strong>View Tasks</strong>
+            <span>View all tasks across the system.</span>
+        </a>
+
+        <a href="{% url 'profile' %}" class="action-card">
+            <strong>My Profile</strong>
+            <span>View and update your profile.</span>
+        </a>
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <h2 class="section-title">System Management</h2>
+
+    <p class="placeholder-note">
+        Admin request management and advanced task management
+        will appear here as those features are implemented.
+    </p>
+
+</div>
+
 {% endblock %}

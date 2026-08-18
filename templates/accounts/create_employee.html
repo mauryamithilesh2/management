@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Create Employee - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Create Employee</h1>
+
+    <p class="card-subtitle">
+        Create login credentials for a new employee.
+    </p>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">
+                    {{ field.label }}
+                </label>
+
+                {{ field }}
+
+                {% if field.help_text %}
+                    <p class="field-hint">{{ field.help_text }}</p>
+                {% endif %}
+
+                {% if field.errors %}
+                    <div class="field-error">
+                        {{ field.errors|join:", " }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">
+            Create Employee
+        </button>
+
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">
+            Cancel
+        </a>
+    </form>
+</div>
+{% endblock %}

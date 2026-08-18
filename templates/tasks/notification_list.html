@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Notifications</h1>
+    <p class="card-subtitle">
+        Updates about tasks assigned to you.
+    </p>
+
+    {% if notifications %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Message</th>
+                    <th>Task</th>
+                    <th>Received</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for notification in notifications %}
+                    <tr>
+                        <td>{{ notification.message }}</td>
+                        <td>
+                            <a href="{% url 'task_detail' notification.task_id %}">
+                                {{ notification.task.title }}
+                            </a>
+                        </td>
+                        <td>{{ notification.created_at|date:"N j, Y, P" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="placeholder-note">No notifications yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

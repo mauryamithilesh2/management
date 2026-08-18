@@ -7,24 +7,42 @@ User = get_user_model()
 
 class ProfileForm(forms.ModelForm):
     """
-    Lets a user edit their own basic profile details.
+    Lets a user edit their own profile details.
 
-    Intentionally excludes `username` and `role`: role changes are an
-    administrative action reserved for later phases, and this form is
-    always bound to `request.user` by the view (never to a user looked up
-    from a URL/POST parameter), so there is no field here - and no way via
-    this form - for one account to edit another account's data.
+    Username, role, and account permissions are intentionally excluded.
+    The view binds this form to request.user.
     """
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "email"]
+        fields = [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "department",
+            "designation",
+        ]
         widgets = {
-            "first_name": forms.TextInput(attrs={"class": "form-control"}),
-            "last_name": forms.TextInput(attrs={"class": "form-control"}),
-            "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "first_name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "last_name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "email": forms.EmailInput(
+                attrs={"class": "form-control"}
+            ),
+            "phone": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "department": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "designation": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
         }
-
 
 class StyledAuthenticationForm(AuthenticationForm):
     """
@@ -67,6 +85,11 @@ class AdminCreateEmployeeForm(forms.ModelForm):
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
     )
 
+    role = forms.ChoiceField(
+        choices=User.Role.choices,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
     class Meta:
         model = User
         fields = ["username", "password", "password_confirm"]
@@ -85,10 +108,32 @@ class AdminCreateEmployeeForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
 
-        user.role = User.Role.EMPLOYEE
+        user.role = self.cleaned_data["role"]
         user.set_password(self.cleaned_data["password"])
 
         if commit:
             user.save()
 
         return user
+
+
+
+class AdminUserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "role",
+            "first_name",
+            "last_name",
+            "email",
+            "is_active",
+        ]
+        widgets = {
+            "username": forms.TextInput(attrs={"class": "form-control"}),
+            "role": forms.Select(attrs={"class": "form-control"}),
+            "first_name": forms.TextInput(attrs={"class": "form-control"}),
+            "last_name": forms.TextInput(attrs={"class": "form-control"}),
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "is_active": forms.CheckboxInput(),
+        }

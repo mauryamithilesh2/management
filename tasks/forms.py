@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import Task
+from .models import Task, TaskUpdate
 
 User = get_user_model()
 
@@ -33,30 +33,41 @@ class TaskFormBase(forms.ModelForm):
         return cleaned_data
 
 
-class EmployeeTaskForm(TaskFormBase):
+class EmployeeTaskStatusForm(TaskFormBase):
     """
-    Form used when an employee creates/edits their own task.
+    Form used when an employee updates a task assigned to them.
 
-    Deliberately excludes `assigned_to`, `created_by`, and `status`:
-    - `assigned_to`/`created_by` are set by the view from `request.user`,
-      not chosen by the employee (this is the same pattern already used
-      for the profile form - never trust an identity field from a
-      request when the view already knows who the user is).
-    - `status` progression (e.g. marking a task Completed/Blocked) is
-      handled separately, not as a field an employee sets while
-      creating/editing the task's basic details.
+    Only `status` is editable - title, description, dates, priority, and
+    assignment are all set by the admin who created the task. An employee
+    can move a task through its lifecycle (e.g. To Do -> In Progress ->
+    Completed) but cannot change what the task is or who it's for.
     """
 
     class Meta(TaskFormBase.Meta):
-        fields = ["title", "description", "start_date", "deadline", "priority"]
+        fields = ["status"]
         widgets = {
-            "title": forms.TextInput(attrs={"class": "form-control"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-            "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "deadline": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-            "priority": forms.Select(attrs={"class": "form-control"}),
+            "status": forms.Select(attrs={"class": "form-control"}),
         }
 
+
+class TaskUpdateForm(forms.ModelForm):
+    """
+    Form an employee uses to log a performance entry against a task
+    assigned to them - date + which half of the day + an optional note.
+
+    `task` and `employee` are deliberately excluded: the view sets both
+    from `request.user` and the task already loaded from the URL, never
+    from submitted form data - same pattern as ProfileForm/EmployeeTaskStatusForm.
+    """
+
+    class Meta:
+        model = TaskUpdate
+        fields = ["date", "half", "note"]
+        widgets = {
+            "date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "half": forms.Select(attrs={"class": "form-control"}),
+            "note": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
 
 class AdminTaskForm(TaskFormBase):
     """

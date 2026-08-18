@@ -10,57 +10,55 @@
         Task Details
     </p>
 
-    <div class="form-group">
-        <strong>Description</strong>
-        <p>{{ task.description|default:"No description provided." }}</p>
-    </div>
+    <div class="detail-grid">
+        <div class="detail-item detail-item-full">
+            <strong>Description</strong>
+            <p>{{ task.description|default:"No description provided." }}</p>
+        </div>
 
-    <div class="form-group">
-        <strong>Assigned Employee</strong>
-        <p>
-            {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
-        </p>
-    </div>
+        <div class="detail-item">
+            <strong>Assigned Employee</strong>
+            <p>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</p>
+        </div>
 
-    <div class="form-group">
-        <strong>Created By</strong>
-        <p>
-            {{ task.created_by.get_full_name|default:task.created_by.username }}
-        </p>
-    </div>
+        <div class="detail-item">
+            <strong>Created By</strong>
+            <p>{{ task.created_by.get_full_name|default:task.created_by.username }}</p>
+        </div>
 
-    <div class="form-group">
-        <strong>Start Date</strong>
-        <p>{{ task.start_date }}</p>
-    </div>
+        <div class="detail-item">
+            <strong>Start Date</strong>
+            <p>{{ task.start_date }}</p>
+        </div>
 
-    <div class="form-group">
-        <strong>Deadline</strong>
-        <p>{{ task.deadline }}</p>
-    </div>
+        <div class="detail-item">
+            <strong>Deadline</strong>
+            <p>{{ task.deadline }}</p>
+        </div>
 
-    <div class="form-group">
-        <strong>Status</strong>
-        <p>
-            <span class="badge badge-status-{{ task.status|lower }}">
-                {{ task.get_status_display }}
-            </span>
-        </p>
-    </div>
+        <div class="detail-item">
+            <strong>Status</strong>
+            <p>
+                <span class="badge badge-status-{{ task.status|lower }}">
+                    {{ task.get_status_display }}
+                </span>
+            </p>
+        </div>
 
-    <div class="form-group">
-        <strong>Priority</strong>
-        <p>{{ task.get_priority_display }}</p>
-    </div>
+        <div class="detail-item">
+            <strong>Priority</strong>
+            <p>{{ task.get_priority_display }}</p>
+        </div>
 
-    <div class="form-group">
-        <strong>Created</strong>
-        <p>{{ task.created_at|date:"N j, Y, P" }}</p>
-    </div>
+        <div class="detail-item">
+            <strong>Created</strong>
+            <p>{{ task.created_at|date:"N j, Y, P" }}</p>
+        </div>
 
-    <div class="form-group">
-        <strong>Last Updated</strong>
-        <p>{{ task.updated_at|date:"N j, Y, P" }}</p>
+        <div class="detail-item">
+            <strong>Last Updated</strong>
+            <p>{{ task.updated_at|date:"N j, Y, P" }}</p>
+        </div>
     </div>
 
     <a href="{% url 'task_list' %}" class="btn btn-secondary">
@@ -68,12 +66,68 @@
     </a>
     {% if user.is_admin_role or task.assigned_to == user %}
     <a href="{% url 'task_edit' task.id %}" class="btn btn-primary">
-        Edit
+        {% if user.is_admin_role %}Edit{% else %}Update Status{% endif %}
     </a>
+    {% endif %}
 
+    {% if user.is_admin_role %}
     <a href="{% url 'task_delete' task.id %}" class="btn btn-danger">
         Delete
     </a>
-{% endif %}
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2 class="section-title">Performance Log</h2>
+    <p class="card-subtitle">
+        {% if user.is_admin_role %}
+            Entries logged by {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}.
+        {% else %}
+            Your logged work on this task.
+        {% endif %}
+    </p>
+
+    {% if updates %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Half</th>
+                    <th>Note</th>
+                    <th>Logged</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for update in updates %}
+                    <tr>
+                        <td>{{ update.date }}</td>
+                        <td>{{ update.get_half_display }}</td>
+                        <td>{{ update.note|default:"—" }}</td>
+                        <td>{{ update.created_at|date:"N j, Y, P" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="placeholder-note">No performance entries logged yet.</p>
+    {% endif %}
+
+    {% if update_form %}
+        <form method="post" action="{% url 'add_task_update' task.id %}" novalidate>
+            {% csrf_token %}
+
+            {% for field in update_form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="field-error">{{ field.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-primary">Log Entry</button>
+        </form>
+    {% endif %}
 </div>
 {% endblock %}

@@ -1,12 +1,47 @@
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-
-from .forms import ProfileForm, StyledAuthenticationForm, StyledPasswordChangeForm
+from tasks.models import Task
+from .forms import (
+    AdminCreateEmployeeForm,
+    AdminUserEditForm,
+    ProfileForm,
+    StyledAuthenticationForm,
+    StyledPasswordChangeForm,
+)
 from .permissions import admin_required
-from .forms import AdminCreateEmployeeForm
+
+User = get_user_model()
+
+def landing(request):
+    """Public system landing page with live operational metrics."""
+    total_users = User.objects.count()
+    total_employees = User.objects.filter(role=User.Role.EMPLOYEE).count()
+
+    active_users = User.objects.filter(is_active=True).count()
+    total_tasks = Task.objects.count()
+    todo_tasks = Task.objects.filter(status=Task.Status.TODO).count()
+    in_progress_tasks = Task.objects.filter(status=Task.Status.IN_PROGRESS).count()
+    completed_tasks = Task.objects.filter(status=Task.Status.COMPLETED).count()
+    blocked_tasks = Task.objects.filter(status=Task.Status.BLOCKED).count()
+
+    context = {
+        "user": request.user,
+        "total_users": total_users,
+        "total_employees": total_employees,
+        "active_users": active_users,
+        "total_tasks": total_tasks,
+        "todo_tasks": todo_tasks,
+        "in_progress_tasks": in_progress_tasks,
+        "completed_tasks": completed_tasks,
+        "blocked_tasks": blocked_tasks,
+    }
+
+    return render(request, "landing.html", context)
+
 
 class LoginView(auth_views.LoginView):
     """
@@ -41,23 +76,45 @@ def post_login_redirect(request):
     """
     if request.user.is_admin_role:
         return redirect("admin_dashboard")
-    return render(request, "accounts/home.html", {"user": request.user})
+
+    my_tasks = Task.objects.filter(assigned_to=request.user)
+    context = {
+        "user": request.user,
+        "total_tasks": my_tasks.count(),
+        "todo_tasks": my_tasks.filter(status=Task.Status.TODO).count(),
+        "in_progress_tasks": my_tasks.filter(status=Task.Status.IN_PROGRESS).count(),
+        "completed_tasks": my_tasks.filter(status=Task.Status.COMPLETED).count(),
+    }
+    return render(request, "accounts/home.html", context)
 
 
 @admin_required
 def admin_dashboard(request):
-    """
-    Placeholder administrator dashboard.
+    total_users = User.objects.count()
 
-    This is deliberately just a placeholder - the real admin dashboard
-    (statistics, links to user management/task management/admin requests)
-    is out of scope for this phase. What matters is that the route exists
-    and is server-side protected: only authenticated users with
-    role=ADMIN can reach it, enforced by `admin_required` rather than by
-    hiding a link in the UI.
-    """
-    return render(request, "accounts/admin_dashboard.html", {"user": request.user})
+    total_employees = User.objects.filter(
+        role=User.Role.EMPLOYEE
+    ).count()
 
+    active_users = User.objects.filter(
+        is_active=True
+    ).count()
+
+    total_tasks = Task.objects.count()
+
+    context = {
+        "user": request.user,
+        "total_users": total_users,
+        "total_employees": total_employees,
+        "active_users": active_users,
+        "total_tasks": total_tasks,
+    }
+
+    return render(
+        request,
+        "accounts/admin_dashboard.html",
+        context,
+    )
 
 @login_required
 def profile(request):
@@ -135,3 +192,69 @@ def create_employee(request):
         "accounts/create_employee.html",
         {"form": form},
     )
+
+@login_required
+@admin_required
+def user_list(request):
+    users = User.objects.all().order_by("username")
+
+    return render(
+        request,
+        "accounts/user_list.html",
+        {"users": users},
+    )
+
+
+
+@login_required
+@admin_required
+def user_edit(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+
+    if request.method == "POST":
+        form = AdminUserEditForm(request.POST, instance=user)
+
+        if form.is_valid():
+            if (user == request.user and form.cleaned_data["role"] != User.Role.ADMIN ):
+                messages.error( request, "You cannot change your own role." )
+                return redirect("user_list")
+            form.save()
+
+            messages.success(
+                request,f"User '{user.username}' updated successfully.")
+
+            return redirect("user_list")
+    else:
+        form = AdminUserEditForm(instance=user)
+
+    return render(
+        request,
+        "accounts/user_edit.html",
+        {
+            "form": form,
+            "user_obj": user,
+        },
+    )
+
+
+@login_required
+@admin_required
+def toggle_user_status(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+
+    # Prevent the admin from accidentally disabling their own account.
+    if user == request.user:
+        messages.error(request, "You cannot change your own account status.")
+        return redirect("user_list")
+
+    user.is_active = not user.is_active
+    user.save(update_fields=["is_active"])
+
+    status = "activated" if user.is_active else "deactivated"
+
+    messages.success(
+        request,
+        f"User '{user.username}' {status} successfully.",
+    )
+
+    return redirect("user_list")

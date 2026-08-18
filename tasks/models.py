@@ -65,3 +65,77 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+class TaskUpdate(models.Model):
+    """
+    A performance log entry an employee adds against a task assigned to
+    them - date + which half of the day the work covers, plus a note.
+
+    This is separate from `Task.status`: status is the current state of
+    the task (To Do / In Progress / Completed / Blocked), while
+    TaskUpdate is a running, timestamped log of work done over time -
+    an employee can add many entries against the same task.
+    """
+
+    class Half(models.TextChoices):
+        FIRST_HALF = "FIRST_HALF", "1st Half"
+        SECOND_HALF = "SECOND_HALF", "2nd Half"
+
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="updates",
+    )
+    employee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="task_updates",
+        help_text="The employee who logged this entry.",
+    )
+    date = models.DateField()
+    half = models.CharField(
+        max_length=20,
+        choices=Half.choices,
+    )
+    note = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.task.title} - {self.date} ({self.get_half_display()})"
+
+
+class Notification(models.Model):
+    """
+    A simple in-app notification for an employee, created automatically
+    when an admin assigns (or reassigns) a task to them.
+
+    Deliberately minimal: no notification "types" system, no generic
+    foreign key. If more notification triggers are added later, this can
+    be extended - for now it only needs to cover task assignment.
+    """
+
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        help_text="The employee this notification is for.",
+    )
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    message = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.recipient} - {self.message}"
+
