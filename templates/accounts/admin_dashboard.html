@@ -20,10 +20,9 @@
 
 
 <div class="dashboard-grid">
-
-    <div class="stat-card">
-        <div class="stat-label">Total Users</div>
-        <div class="stat-value">{{ total_users }}</div>
+ <div class="stat-card">
+        <div class="stat-label">Active Users</div>
+        <div class="stat-value">{{ active_users }}</div>
     </div>
 
     <div class="stat-card">
@@ -31,10 +30,7 @@
         <div class="stat-value">{{ total_employees }}</div>
     </div>
 
-    <div class="stat-card">
-        <div class="stat-label">Active Users</div>
-        <div class="stat-value">{{ active_users }}</div>
-    </div>
+   
 
     <div class="stat-card">
         <div class="stat-label">Total Tasks</div>
@@ -50,17 +46,12 @@
 
     <div class="action-grid">
 
-        <a href="{% url 'create_employee' %}" class="action-card">
-            <strong>Create User</strong>
-            <span>Create a new employee or admin account.</span>
-        </a>
-
         <a href="{% url 'user_list' %}" class="action-card">
-            <strong>Manage Users</strong>
+            <strong>Manage Team</strong>
             <span>View and manage all users.</span>
         </a>
 
-        <a href="{% url 'task_list' %}" class="action-card">
+        <a href="{% url 'employee_overview' %}" class="action-card">
             <strong>View Tasks</strong>
             <span>View all tasks across the system.</span>
         </a>

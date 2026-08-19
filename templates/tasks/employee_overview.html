@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Employees - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Employees</h1>
+    <p class="card-subtitle">
+        All employees. Click a name to see their task breakdown.
+    </p>
+
+    {% if employees %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Designation</th>
+                    <th>Subteam</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'employee_task_detail' employee.id %}">
+                                {{ employee.username }}
+                            </a>
+                        </td>
+                        <td>{{ employee.get_full_name|default:"-" }}</td>
+                        <td>{{ employee.designation|default:"-" }}</td>
+                        <td>{{ employee.subteam|default:"-" }}</td>
+                        <td>
+                            {% if employee.is_active %}
+                                Active
+                            {% else %}
+                                Inactive
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="placeholder-note">No employees found.</p>
+    {% endif %}
+</div>
+{% endblock %}

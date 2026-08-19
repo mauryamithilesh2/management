@@ -19,7 +19,7 @@ class Task(models.Model):
         TODO = "TODO", "To Do"
         IN_PROGRESS = "IN_PROGRESS", "In Progress"
         COMPLETED = "COMPLETED", "Completed"
-        BLOCKED = "BLOCKED", "Blocked"
+       
 
     class Priority(models.TextChoices):
         LOW = "LOW", "Low"
@@ -103,6 +103,12 @@ class TaskUpdate(models.Model):
 
     class Meta:
         ordering = ["-date", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["task", "employee", "date", "half"],
+                name="unique_task_employee_date_half",
+            )
+        ]
 
     def __str__(self):
         return f"{self.task.title} - {self.date} ({self.get_half_display()})"

@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django import forms
+import secrets
+import string
 
 User = get_user_model()
 
@@ -75,15 +77,15 @@ class StyledPasswordChangeForm(PasswordChangeForm):
         for field_name in ("old_password", "new_password1", "new_password2"):
             self.fields[field_name].widget.attrs.update({"class": "form-control"})
 
+def generate_temporary_password(length=12):
+    characters = string.ascii_letters + string.digits + "!@#$%^&*"
+
+    return "".join(
+        secrets.choice(characters)
+        for _ in range(length)
+    )
+
 class AdminCreateEmployeeForm(forms.ModelForm):
-    password = forms.CharField(
-        label="Temporary Password",
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
-    )
-    password_confirm = forms.CharField(
-        label="Confirm Password",
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
-    )
 
     role = forms.ChoiceField(
         choices=User.Role.choices,
@@ -92,29 +94,51 @@ class AdminCreateEmployeeForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["username", "password", "password_confirm"]
+        fields = [
+            "email",
+            "username",
+            "role",
+            "designation",
+            "subteam",
+        ]
+        widgets = {
+            "email": forms.EmailInput(
+                attrs={"class": "form-control"}
+            ),
+            "username": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "role": forms.Select(
+                attrs={"class": "form-control"}
+            ),
+            "designation": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "subteam": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+        }
 
-    def clean(self):
-        cleaned_data = super().clean()
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(
+                "An account with this email address already exists."
+            )
 
-        password = cleaned_data.get("password")
-        password_confirm = cleaned_data.get("password_confirm")
-
-        if password and password_confirm and password != password_confirm:
-            raise forms.ValidationError("Passwords do not match.")
-
-        return cleaned_data
+        return email
 
     def save(self, commit=True):
         user = super().save(commit=False)
-
-        user.role = self.cleaned_data["role"]
-        user.set_password(self.cleaned_data["password"])
+        temporary_password = generate_temporary_password()
+        user.set_password(temporary_password)
 
         if commit:
             user.save()
 
+        user._temporary_password = temporary_password
         return user
+
 
 
 
@@ -127,6 +151,8 @@ class AdminUserEditForm(forms.ModelForm):
             "first_name",
             "last_name",
             "email",
+            "designation",
+            "subteam",
             "is_active",
         ]
         widgets = {
@@ -135,5 +161,7 @@ class AdminUserEditForm(forms.ModelForm):
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "designation": forms.TextInput(attrs={"class": "form-control"}),
+            "subteam": forms.TextInput(attrs={"class": "form-control"}),
             "is_active": forms.CheckboxInput(),
         }

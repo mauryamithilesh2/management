@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.username }} - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">{{ employee.get_full_name|default:employee.username }}</h1>
+    <p class="card-subtitle">
+        {{ employee.designation|default:"-" }}
+        {% if employee.subteam %} · {{ employee.subteam }}{% endif %}
+    </p>
+
+    <div class="dashboard-grid">
+        <div class="stat-card">
+            <div class="stat-label">To Do</div>
+            <div class="stat-value">{{ todo_count }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">In Progress</div>
+            <div class="stat-value">{{ in_progress_count }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Completed</div>
+            <div class="stat-value">{{ completed_count }}</div>
+        </div>
+    </div>
+
+    <a href="{% url 'employee_overview' %}" class="btn btn-secondary">
+        Back to Employees
+    </a>
+</div>
+
+<div class="card">
+    <h2 class="section-title">Latest Assigned Task</h2>
+
+    {% if latest_task %}
+        <div class="detail-grid">
+            <div class="detail-item detail-item-full">
+                <strong>Title</strong>
+                <p><a href="{% url 'task_detail' latest_task.id %}?readonly=1">{{ latest_task.title }}</a></p>            </div>
+            <div class="detail-item">
+                <strong>Status</strong>
+                <p>
+                    <span class="badge badge-status-{{ latest_task.status|lower }}">
+                        {{ latest_task.get_status_display }}
+                    </span>
+                </p>
+            </div>
+            <div class="detail-item">
+                <strong>Priority</strong>
+                <p>{{ latest_task.get_priority_display }}</p>
+            </div>
+            <div class="detail-item">
+                <strong>Deadline</strong>
+                <p>{{ latest_task.deadline }}</p>
+            </div>
+        </div>
+    {% else %}
+        <p class="placeholder-note">No tasks assigned yet.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2 class="section-title">All Tasks</h2>
+
+    {% if tasks %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Priority</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.get_priority_display }}</td>
+                        <td>{{ task.deadline }}</td>
+                        <td>
+                            <span class="badge badge-status-{{ task.status|lower }}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ task.created_at|date:"N j, Y" }}</td>
+                        <td>
+                            <a class="btn btn-secondary" href="{% url 'task_detail' task.id %}?readonly=1">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="placeholder-note">No tasks assigned yet.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2 class="section-title">Performance Log</h2>
+    <p class="card-subtitle">
+        All entries logged by {{ employee.get_full_name|default:employee.username }} across their tasks.
+    </p>
+
+    {% if updates %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Date</th>
+                    <th>Half</th>
+                    <th>Note</th>
+                    <th>Logged</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for update in updates %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'task_detail' update.task_id %}?readonly=1">
+                                {{ update.task.title }}
+                            </a>
+                        </td>
+                        <td>{{ update.date }}</td>
+                        <td>{{ update.get_half_display }}</td>
+                        <td>{{ update.note|default:"—" }}</td>
+                        <td>{{ update.created_at|date:"N j, Y, P" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="placeholder-note">No performance entries logged yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

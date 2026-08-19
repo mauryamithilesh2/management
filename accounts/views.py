@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
@@ -13,7 +14,8 @@ from .forms import (
     StyledPasswordChangeForm,
 )
 from .permissions import admin_required
-
+import logging
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 def landing(request):
@@ -26,7 +28,6 @@ def landing(request):
     todo_tasks = Task.objects.filter(status=Task.Status.TODO).count()
     in_progress_tasks = Task.objects.filter(status=Task.Status.IN_PROGRESS).count()
     completed_tasks = Task.objects.filter(status=Task.Status.COMPLETED).count()
-    blocked_tasks = Task.objects.filter(status=Task.Status.BLOCKED).count()
 
     context = {
         "user": request.user,
@@ -37,7 +38,6 @@ def landing(request):
         "todo_tasks": todo_tasks,
         "in_progress_tasks": in_progress_tasks,
         "completed_tasks": completed_tasks,
-        "blocked_tasks": blocked_tasks,
     }
 
     return render(request, "landing.html", context)
@@ -168,7 +168,6 @@ class PasswordChangeView(auth_views.PasswordChangeView):
         messages.success(self.request, "Your password has been changed successfully.")
         return response
 
-
 @login_required
 @admin_required
 def create_employee(request):
@@ -178,11 +177,43 @@ def create_employee(request):
         if form.is_valid():
             user = form.save()
 
-            messages.success(
-                request,
-                f"Employee '{user.username}' created successfully."
-            )
+            temporary_password = user._temporary_password
 
+            try:
+                send_mail(
+                    subject="KS Management System - Your Employee Account",
+                    message=(
+                        f"Hello {user.username},\n\n"
+                        f"Your Employee Task Management System account has been created.\n\n"
+                        f"Username: {user.username}\n"
+                        f"Temporary Password: {temporary_password}\n"
+                        f"Role: {user.get_role_display()}\n\n"
+                        f"Please log in and change your password after your first login.\n\n"
+                        f"Regards,\n"
+                        f"KSMS Admin"
+                    ),
+                    from_email=None,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+                email_sent = True
+            except Exception:
+                logger.exception("Failed to send welcome email to %s", user.email)
+                email_sent = False
+
+            if email_sent:
+                messages.success(
+                    request,
+                    f"Employee '{user.username}' created successfully "
+                    f"and credentials emailed."
+                )
+            else:
+                messages.warning(
+                    request,
+                    f"Employee '{user.username}' created, but the welcome "
+                    f"email could not be sent. Share the temporary password "
+                    f"with them manually: {temporary_password}"
+                )
             return redirect("admin_dashboard")
     else:
         form = AdminCreateEmployeeForm()
@@ -192,7 +223,6 @@ def create_employee(request):
         "accounts/create_employee.html",
         {"form": form},
     )
-
 @login_required
 @admin_required
 def user_list(request):

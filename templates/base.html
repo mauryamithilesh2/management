@@ -48,8 +48,6 @@
 
                 {% if user.is_admin_role %}
                     <a class="nav-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
-                    <a class="nav-link" href="{% url 'user_list' %}">Users</a>
-                    <a class="nav-link" href="{% url 'task_list' %}">Tasks</a>
                     <a class="nav-link" href="{% url 'create_task' %}">Assign Task</a>
                     <a class="nav-link" href="{% url 'create_employee' %}">Create User</a>
                     <span class="nav-link nav-link-disabled">Admin Requests</span>

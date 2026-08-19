@@ -29,6 +29,10 @@ class User(AbstractUser):
     roles - "admin" is not a separate account type, it is a permission
     level on the same account.
     """
+    email = models.EmailField(
+        unique=True,
+        help_text="Each email address can belong to only one user account.",
+    )
 
     class Role(models.TextChoices):
         EMPLOYEE = "EMPLOYEE", "Employee"
@@ -43,6 +47,10 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True)
     department = models.CharField(max_length=100, blank=True)
     designation = models.CharField(max_length=100, blank=True)
+    subteam = models.CharField(
+    max_length=100,
+    blank=True,
+    help_text="Sub-team the employee belongs to (e.g. SCADA, Vision) - set by admin.",)
     updated_at = models.DateTimeField(auto_now=True)
 
     objects = ETMSUserManager()

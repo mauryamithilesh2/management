@@ -64,16 +64,25 @@
     <a href="{% url 'task_list' %}" class="btn btn-secondary">
         Back to Tasks
     </a>
-    {% if user.is_admin_role or task.assigned_to == user %}
-    <a href="{% url 'task_edit' task.id %}" class="btn btn-primary">
-        {% if user.is_admin_role %}Edit{% else %}Update Status{% endif %}
-    </a>
-    {% endif %}
+    {% if not request.GET.readonly %}
+        {% if user.is_admin_role or task.assigned_to == user %}
+            <a href="{% url 'task_edit' task.id %}" class="btn btn-primary">
+                {% if user.is_admin_role %}Edit{% else %}Update Status{% endif %}
+            </a>
+        {% endif %}
 
-    {% if user.is_admin_role %}
-    <a href="{% url 'task_delete' task.id %}" class="btn btn-danger">
-        Delete
-    </a>
+        {% if user.is_admin_role %}
+           <a href="{% url 'task_delete' task.id %}" class="btn btn-danger">
+            Delete</a>
+                <form method="post"
+                    action="{% url 'notify_task_employee' task.id %}"
+                    style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        Notify Employee
+                    </button>
+                </form>
+        {% endif %}        
     {% endif %}
 </div>
 
@@ -130,4 +139,53 @@
         </form>
     {% endif %}
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const dateInput = document.getElementById("id_date");
+    const halfSelect = document.getElementById("id_half");
+
+    const existingUpdateHalves = {{ existing_update_halves|safe }};
+
+    function updateHalfOptions() {
+        const selectedDate = dateInput.value;
+
+        // Reset options
+        halfSelect.innerHTML = "";
+
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select Half";
+        halfSelect.appendChild(defaultOption);
+
+        if (!selectedDate) {
+            addHalfOption("FIRST_HALF", "1st Half");
+            addHalfOption("SECOND_HALF", "2nd Half");
+            return;
+        }
+
+        const existingHalves = existingUpdateHalves[selectedDate] || [];
+
+        // 1st Half is available only if it has not already been logged
+        if (!existingHalves.includes("FIRST_HALF")) {
+            addHalfOption("FIRST_HALF", "1st Half");
+        }
+
+        // 2nd Half is available only if it has not already been logged
+        if (!existingHalves.includes("SECOND_HALF")) {
+            addHalfOption("SECOND_HALF", "2nd Half");
+        }
+    }
+
+    function addHalfOption(value, text) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = text;
+        halfSelect.appendChild(option);
+    }
+
+    dateInput.addEventListener("change", updateHalfOptions);
+
+    updateHalfOptions();
+});
+</script>
 {% endblock %}
