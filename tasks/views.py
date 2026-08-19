@@ -1,4 +1,7 @@
-from django.core.mail import send_mail
+import logging
+import os
+
+import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -8,9 +11,46 @@ from django.shortcuts import get_object_or_404, redirect, render
 from .forms import AdminTaskForm, EmployeeTaskStatusForm, TaskUpdateForm
 from .models import Task, Notification, TaskUpdate
 from accounts.permissions import admin_required
-import logging
+
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+
+def send_via_brevo(subject, message, recipient_email):
+    """
+    Sends email via Brevo's HTTP API (port 443) instead of SMTP (port 587).
+    Render blocks outbound SMTP entirely on this plan, so send_mail()
+    always timed out - the HTTP API uses the same port as normal web
+    traffic, which isn't blocked. Returns True/False instead of raising,
+    so callers can show a success/warning message either way.
+    """
+    api_key = os.getenv("BREVO_API_KEY")
+    if not api_key:
+        logger.error("BREVO_API_KEY not set - cannot send email.")
+        return False
+
+    try:
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": api_key,
+                "Content-Type": "application/json",
+            },
+            json={
+                "sender": {"email": settings.DEFAULT_FROM_EMAIL},
+                "to": [{"email": recipient_email}],
+                "subject": subject,
+                "textContent": message,
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        return True
+    except Exception:
+        logger.exception(
+            "Failed to send email via Brevo API to %s", recipient_email
+        )
+        return False
 
 
 def notify_employee(task, subject=None, message=None):
@@ -41,22 +81,13 @@ def notify_employee(task, subject=None, message=None):
         message=message,
     )
 
-    # Email notification - best-effort. A mail-server hiccup should never
-    # block task creation/assignment, which already succeeded in the DB
-    # by the time this runs.
+    # Email notification - best-effort, via HTTP API (not SMTP).
     if employee.email:
-        try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[employee.email],
-                fail_silently=False,
-            )
-        except Exception:
-            logger.exception(
-                "Failed to send task notification email to %s", employee.email
-            )
+        send_via_brevo(subject, message, employee.email)
+
+
+
+ 
 @login_required
 @admin_required
 def create_task(request):

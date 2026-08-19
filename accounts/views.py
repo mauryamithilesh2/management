@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.core.mail import send_mail
+from tasks.views import send_via_brevo
 from django.contrib.auth import get_user_model
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
@@ -179,27 +179,20 @@ def create_employee(request):
 
             temporary_password = user._temporary_password
 
-            try:
-                send_mail(
-                    subject="KS Management System - Your Employee Account",
-                    message=(
-                        f"Hello {user.username},\n\n"
-                        f"Your Employee Task Management System account has been created.\n\n"
-                        f"Username: {user.username}\n"
-                        f"Temporary Password: {temporary_password}\n"
-                        f"Role: {user.get_role_display()}\n\n"
-                        f"Please log in and change your password after your first login.\n\n"
-                        f"Regards,\n"
-                        f"KSMS Admin"
-                    ),
-                    from_email=None,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                email_sent = True
-            except Exception:
-                logger.exception("Failed to send welcome email to %s", user.email)
-                email_sent = False
+            email_sent = send_via_brevo(
+                subject="KS Management System - Your Employee Account",
+                message=(
+                    f"Hello {user.username},\n\n"
+                    f"Your Employee Task Management System account has been created.\n\n"
+                    f"Username: {user.username}\n"
+                    f"Temporary Password: {temporary_password}\n"
+                    f"Role: {user.get_role_display()}\n\n"
+                    f"Please log in and change your password after your first login.\n\n"
+                    f"Regards,\n"
+                    f"KSMS Admin"
+                ),
+                recipient_email=user.email,
+            )
 
             if email_sent:
                 messages.success(
