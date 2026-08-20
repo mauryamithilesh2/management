@@ -71,7 +71,7 @@ def notify_employee(task, subject=None, message=None):
             f"Deadline: {task.deadline}\n"
             f"Priority: {task.get_priority_display()}\n"
             f"Status: {task.get_status_display()}\n\n"
-            f"Please log in to ETMS to view the task details."
+            f"Please log in to KSMS to view the task details."
         )
 
     # In-app notification
@@ -113,15 +113,13 @@ def create_task(request):
                     f"Status: {task.get_status_display()}\n\n"
                     f"Please log in to ETMS to view the task details.\n\n"
                     f"Regards,\n"
-                    f"ETMS Admin"
+                    f"KSMS Admin"
                 ),
             )
-
             messages.success(
                 request,
                 f'Task "{task.title}" created and assigned successfully.'
             )
-
             return redirect("post_login_redirect")
 
     else:

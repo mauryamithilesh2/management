@@ -188,6 +188,8 @@ def create_employee(request):
                     f"Temporary Password: {temporary_password}\n"
                     f"Role: {user.get_role_display()}\n\n"
                     f"Please log in and change your password after your first login.\n\n"
+                    f"Login here:\n"
+                    f"https://ks-management-portal.onrender.com/accounts/login/\n\n"
                     f"Regards,\n"
                     f"KSMS Admin"
                 ),
