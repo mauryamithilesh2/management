@@ -13,6 +13,7 @@ from .forms import (
     StyledAuthenticationForm,
     StyledPasswordChangeForm,
 )
+from django.conf import settings
 from .permissions import admin_required
 import logging
 logger = logging.getLogger(__name__)
@@ -178,6 +179,7 @@ def create_employee(request):
             user = form.save()
 
             temporary_password = user._temporary_password
+            login_url = f"{settings.SITE_URL}/accounts/login/"
 
             email_sent = send_via_brevo(
                 subject="KS Management System - Your Employee Account",
@@ -187,13 +189,11 @@ def create_employee(request):
                     f"Username: {user.username}\n"
                     f"Temporary Password: {temporary_password}\n"
                     f"Role: {user.get_role_display()}\n\n"
-                    f"Please log in and change your password after your first login.\n\n"
-                    f"Login here:\n"
-                    f"https://ks-management-portal.onrender.com/accounts/login/\n\n"
-                    f"Regards,\n"
-                    f"KSMS Admin"
+                    f"Please log in and change your password after your first login."
                 ),
                 recipient_email=user.email,
+                task_url=login_url,
+                button_text="Click here to login and set your password",
             )
 
             if email_sent:

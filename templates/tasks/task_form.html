@@ -46,4 +46,48 @@
         </button>
     </form>
 </div>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var textarea = document.getElementById("id_description");
+    if (!textarea) return;
+
+    var editorDiv = document.createElement("div");
+    editorDiv.id = "description-editor";
+    editorDiv.style.background = "#fff";
+    editorDiv.style.overflow = "hidden";
+    textarea.parentNode.insertBefore(editorDiv, textarea);
+    textarea.style.display = "none";
+
+    var quill = new Quill("#description-editor", {
+        theme: "snow",
+        modules: {
+            toolbar: [["bold"], [{ header: [2, 3, false] }], [{ list: "bullet" }]]
+        }
+    });
+
+    var editingArea = editorDiv.querySelector(".ql-editor");
+    editingArea.style.minHeight = "100px";
+    editingArea.style.maxHeight = "150px";
+    editingArea.style.overflowY = "auto";
+
+    // Lock the OUTER box to a fixed total height (toolbar + editing area).
+    // This is what the grid measures to size the row - capping only the
+    // inner .ql-editor isn't enough if the outer container's height is
+    // ever computed before Quill finishes rendering internally.
+    editorDiv.style.height = "192px";
+
+    quill.root.innerHTML = textarea.value;
+
+    textarea.closest("form").addEventListener("submit", function () {
+        textarea.value = quill.root.innerHTML;
+    });
+
+    var spacer = document.createElement("div");
+    spacer.style.height = "40px";
+    spacer.style.width = "100%";
+    editorDiv.insertAdjacentElement("afterend", spacer);
+});
+</script>
 {% endblock %}

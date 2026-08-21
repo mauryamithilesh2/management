@@ -138,7 +138,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Kolkata"
 USE_I18N = True
 USE_TZ = True
 
@@ -185,3 +185,4 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 # connection just hangs forever instead of failing, which triggers
 # Gunicorn's worker-timeout kill rather than a catchable exception.
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
+SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")

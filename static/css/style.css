@@ -370,6 +370,7 @@ a {
 
 .form-grid .form-group:has(textarea) {
     grid-column: 1 / -1;
+     margin-bottom: 1.5rem;
 }
 
 @media (max-width: 640px) {
@@ -400,6 +401,25 @@ a {
 
 .detail-item-full {
     grid-column: 1 / -1;
+}
+
+.description-block {
+    margin-bottom: 1.5rem;
+}
+
+.description-block strong {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.description-block .description-content {
+    max-height: 140px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
 }
 
 @media (max-width: 640px) {

@@ -11,10 +11,11 @@
     </p>
 
     <div class="detail-grid">
-        <div class="detail-item detail-item-full">
+        <div class="description-block">
             <strong>Description</strong>
-            <p>{{ task.description|default:"No description provided." }}</p>
+            <div class="description-content">{{ task.description|default:"No description provided."|safe }}</div>
         </div>
+
 
         <div class="detail-item">
             <strong>Assigned Employee</strong>
@@ -111,7 +112,7 @@
                     <tr>
                         <td>{{ update.date }}</td>
                         <td>{{ update.get_half_display }}</td>
-                        <td>{{ update.note|default:"—" }}</td>
+                        <td>{{ update.note|default:"—"|safe }}</td>
                         <td>{{ update.created_at|date:"N j, Y, P" }}</td>
                     </tr>
                 {% endfor %}
@@ -188,4 +189,46 @@ document.addEventListener("DOMContentLoaded", function () {
     updateHalfOptions();
 });
 </script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var noteField = document.getElementById("id_note");
+    if (!noteField) return;
+
+    var editorDiv = document.createElement("div");
+    editorDiv.id = "note-editor";
+    editorDiv.style.background = "#fff";
+    editorDiv.style.overflow = "hidden";
+    noteField.parentNode.insertBefore(editorDiv, noteField);
+    noteField.style.display = "none";
+
+    var noteQuill = new Quill("#note-editor", {
+        theme: "snow",
+        modules: {
+            toolbar: [["bold"], [{ header: [2, 3, false] }], [{ list: "bullet" }]]
+        }
+    });
+
+    var noteEditingArea = editorDiv.querySelector(".ql-editor");
+    noteEditingArea.style.minHeight = "80px";
+    noteEditingArea.style.maxHeight = "120px";
+    noteEditingArea.style.overflowY = "auto";
+
+    // Lock the OUTER box to a fixed total height (toolbar + editing area),
+    // same fix as the description editor - this is what any surrounding
+    // layout measures, so it can't render taller than expected.
+    editorDiv.style.height = "162px";
+
+    noteField.closest("form").addEventListener("submit", function () {
+        noteField.value = noteQuill.root.innerHTML;
+    });
+
+    var noteSpacer = document.createElement("div");
+    noteSpacer.style.height = "24px";
+    noteSpacer.style.width = "100%";
+    editorDiv.insertAdjacentElement("afterend", noteSpacer);
+});
+</script>
+
 {% endblock %}

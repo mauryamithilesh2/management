@@ -128,7 +128,7 @@
                         </td>
                         <td>{{ update.date }}</td>
                         <td>{{ update.get_half_display }}</td>
-                        <td>{{ update.note|default:"—" }}</td>
+                        <td>{{ update.note|default:"—"|safe }}</td>
                         <td>{{ update.created_at|date:"N j, Y, P" }}</td>
                     </tr>
                 {% endfor %}

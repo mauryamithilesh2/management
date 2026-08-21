@@ -8,26 +8,38 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import AdminTaskForm, EmployeeTaskStatusForm, TaskUpdateForm
+from .forms import AdminTaskForm,AdminTaskCreateForm, EmployeeTaskStatusForm, TaskUpdateForm
 from .models import Task, Notification, TaskUpdate
 from accounts.permissions import admin_required
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-
-def send_via_brevo(subject, message, recipient_email):
+def send_via_brevo(subject, message, recipient_email, task_url=None, button_text="Click here to view task"):
     """
     Sends email via Brevo's HTTP API (port 443) instead of SMTP (port 587).
     Render blocks outbound SMTP entirely on this plan, so send_mail()
     always timed out - the HTTP API uses the same port as normal web
     traffic, which isn't blocked. Returns True/False instead of raising,
     so callers can show a success/warning message either way.
+
+    If task_url is given, an HTML button using button_text is appended
+    below the plain-text message (plain textContent is still sent too,
+    for email clients that don't render HTML).
     """
     api_key = os.getenv("BREVO_API_KEY")
     if not api_key:
         logger.error("BREVO_API_KEY not set - cannot send email.")
         return False
+
+    html_message = message.replace("\n", "<br>")
+    if task_url:
+        html_message += (
+            f'<br><br><a href="{task_url}" '
+            f'style="display:inline-block;padding:10px 20px;background:#1f5f8b;'
+            f'color:#ffffff;text-decoration:none;border-radius:4px;">'
+            f'{button_text}</a>'
+        )
 
     try:
         response = requests.post(
@@ -37,10 +49,14 @@ def send_via_brevo(subject, message, recipient_email):
                 "Content-Type": "application/json",
             },
             json={
-                "sender": {"email": settings.DEFAULT_FROM_EMAIL},
+                "sender": {
+                    "name": os.getenv("DEFAULT_FROM_NAME", "KSMS Admin"),
+                    "email": settings.DEFAULT_FROM_EMAIL,
+                },
                 "to": [{"email": recipient_email}],
                 "subject": subject,
                 "textContent": message,
+                "htmlContent": html_message,
             },
             timeout=10,
         )
@@ -51,8 +67,7 @@ def send_via_brevo(subject, message, recipient_email):
             "Failed to send email via Brevo API to %s", recipient_email
         )
         return False
-
-
+    
 def notify_employee(task, subject=None, message=None):
     """
     Send both in-app notification and email to the task's assigned employee.
@@ -83,47 +98,66 @@ def notify_employee(task, subject=None, message=None):
 
     # Email notification - best-effort, via HTTP API (not SMTP).
     if employee.email:
-        send_via_brevo(subject, message, employee.email)
+        task_url = f"{settings.SITE_URL}/tasks/{task.id}/"
+        send_via_brevo(subject, message, employee.email, task_url=task_url)
 
-
-
- 
 @login_required
 @admin_required
 def create_task(request):
     if request.method == "POST":
-        form = AdminTaskForm(request.POST)
+        form = AdminTaskCreateForm(request.POST)
 
         if form.is_valid():
-            task = form.save(commit=False)
-            task.created_by = request.user
-            task.save()
+            employees = form.cleaned_data["assigned_to"]
+            created_titles = []
 
-            notify_employee(
-                task,
-                subject=f"New Task Assigned: {task.title}",
-                message=(
-                    f'Hello {task.assigned_to.get_full_name() or task.assigned_to.username},\n\n'
-                    f'You have been assigned a new task.\n\n'
-                    f"Task: {task.title}\n"
-                    f"Description: {task.description}\n"
-                    f"Start Date: {task.start_date}\n"
-                    f"Deadline: {task.deadline}\n"
-                    f"Priority: {task.get_priority_display()}\n"
-                    f"Status: {task.get_status_display()}\n\n"
-                    f"Please log in to ETMS to view the task details.\n\n"
-                    f"Regards,\n"
-                    f"KSMS Admin"
-                ),
-            )
-            messages.success(
-                request,
-                f'Task "{task.title}" created and assigned successfully.'
-            )
+            for employee in employees:
+                task = Task.objects.create(
+                    title=form.cleaned_data["title"],
+                    description=form.cleaned_data["description"],
+                    assigned_to=employee,
+                    created_by=request.user,
+                    start_date=form.cleaned_data["start_date"],
+                    deadline=form.cleaned_data["deadline"],
+                    status=form.cleaned_data["status"],
+                    priority=form.cleaned_data["priority"],
+                )
+                created_titles.append(task.title)
+
+                notify_employee(
+                    task,
+                    subject=f"New Task Assigned: {task.title}",
+                    message=(
+                        f'Hello {employee.get_full_name() or employee.username},\n\n'
+                        f'You have been assigned a new task.\n\n'
+                        f"Task: {task.title}\n"
+                        f"Description: {task.description}\n"
+                        f"Start Date: {task.start_date}\n"
+                        f"Deadline: {task.deadline}\n"
+                        f"Priority: {task.get_priority_display()}\n"
+                        f"Status: {task.get_status_display()}\n\n"
+                        f"Please log in to KSMS to view the task details.\n\n"
+                        f"Regards,\n"
+                        f"KSMS Admin"
+                    ),
+                )
+
+            if len(employees) == 1:
+                messages.success(
+                    request,
+                    f'Task "{created_titles[0]}" created and assigned successfully.'
+                )
+            else:
+                messages.success(
+                    request,
+                    f'Task "{form.cleaned_data["title"]}" created and assigned '
+                    f'to {len(employees)} employees.'
+                )
+
             return redirect("post_login_redirect")
 
     else:
-        form = AdminTaskForm()
+        form = AdminTaskCreateForm()
 
     return render(
         request,
@@ -259,7 +293,7 @@ def notify_task_employee(request, task_id):
             f"Deadline: {task.deadline}\n"
             f"Priority: {task.get_priority_display()}\n"
             f"Status: {task.get_status_display()}\n\n"
-            f"Please log in to ETMS for more details."
+            f"Please log in to KSMS for more details."
         ),
     )
 

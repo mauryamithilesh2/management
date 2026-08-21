@@ -1,10 +1,44 @@
 from django import forms
 from django.contrib.auth import get_user_model
-
+import bleach
 from .models import Task, TaskUpdate
 
 User = get_user_model()
 
+ALLOWED_TAGS = ["p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "h2", "h3"]
+
+class AdminTaskCreateForm(forms.ModelForm):
+    """
+    Used only for creating a NEW task. Unlike AdminTaskForm (single
+    assigned_to, used for editing an existing task), this lets an admin
+    select multiple employees at once - the view creates one separate
+    Task row per selected employee, so every other part of the app
+    (permissions, notifications, performance logs) keeps working with
+    the existing one-task-per-employee assumption.
+    """
+
+    assigned_to = forms.ModelMultipleChoiceField(
+        queryset=User.objects.filter(role=User.Role.EMPLOYEE, is_active=True),
+        widget=forms.CheckboxSelectMultiple,
+        label="Assign to",
+        help_text="Select one or more employees - a separate task is created for each.",
+    )
+
+    class Meta:
+        model = Task
+        fields = ["title", "description", "start_date", "deadline", "status", "priority"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "deadline": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "status": forms.Select(attrs={"class": "form-control"}),
+            "priority": forms.Select(attrs={"class": "form-control"}),
+        }
+
+    def clean_description(self):
+        raw = self.cleaned_data.get("description", "")
+        return bleach.clean(raw, tags=ALLOWED_TAGS, strip=True)
 
 class TaskFormBase(forms.ModelForm):
     """
@@ -106,3 +140,7 @@ class AdminTaskForm(TaskFormBase):
             "status": forms.Select(attrs={"class": "form-control"}),
             "priority": forms.Select(attrs={"class": "form-control"}),
         }
+
+    def clean_description(self):
+        raw = self.cleaned_data.get("description", "")
+        return bleach.clean(raw, tags=ALLOWED_TAGS, strip=True)
