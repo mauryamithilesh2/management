@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
-
+from django.utils.html import strip_tags
 from .forms import AdminTaskForm,AdminTaskCreateForm, EmployeeTaskStatusForm, TaskUpdateForm
 from .models import Task, Notification, TaskUpdate
 from accounts.permissions import admin_required
@@ -81,7 +81,7 @@ def notify_employee(task, subject=None, message=None):
     if not message:
         message = (
             f'You have a task notification for "{task.title}".\n\n'
-            f"Description: {task.description}\n"
+            f"Description: {strip_tags(task.description)}\n"
             f"Start Date: {task.start_date}\n"
             f"Deadline: {task.deadline}\n"
             f"Priority: {task.get_priority_display()}\n"
@@ -131,7 +131,7 @@ def create_task(request):
                         f'Hello {employee.get_full_name() or employee.username},\n\n'
                         f'You have been assigned a new task.\n\n'
                         f"Task: {task.title}\n"
-                        f"Description: {task.description}\n"
+                        f"Description: {strip_tags(task.description)}\n"
                         f"Start Date: {task.start_date}\n"
                         f"Deadline: {task.deadline}\n"
                         f"Priority: {task.get_priority_display()}\n"
@@ -288,7 +288,7 @@ def notify_task_employee(request, task_id):
             f'Hello {task.assigned_to.get_full_name() or task.assigned_to.username},\n\n'
             f'The administrator has sent you a notification regarding your task.\n\n'
             f"Task: {task.title}\n"
-            f"Description: {task.description}\n"
+            f"Description: {strip_tags(task.description)}\n"
             f"Start Date: {task.start_date}\n"
             f"Deadline: {task.deadline}\n"
             f"Priority: {task.get_priority_display()}\n"
@@ -366,7 +366,7 @@ def task_edit(request, task_id):
                         f'Hello {task.assigned_to.get_full_name() or task.assigned_to.username},\n\n'
                         f'You have been assigned a task.\n\n'
                         f"Task: {task.title}\n"
-                        f"Description: {task.description}\n"
+                        f"Description: {strip_tags(task.description)}\n"
                         f"Start Date: {task.start_date}\n"
                         f"Deadline: {task.deadline}\n"
                         f"Priority: {task.get_priority_display()}\n"
