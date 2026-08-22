@@ -1,5 +1,6 @@
 import logging
 import os
+import requests
 import uuid
 from datetime import timedelta
 from django.utils import timezone
