@@ -174,26 +174,36 @@ LOGOUT_REDIRECT_URL = "login"
 
 
 
+# # Email configuration
+# EMAIL_BACKEND = os.getenv(
+#     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+# )
+# EMAIL_HOST = os.getenv("EMAIL_HOST")
+# EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+# EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
+
+# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+
+# DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+
+# # Without this, smtplib has no default timeout - if Render's network
+# # silently blocks outbound SMTP (common on PaaS free tiers), the
+# # connection just hangs forever instead of failing, which triggers
+# # Gunicorn's worker-timeout kill rather than a catchable exception.
+# EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
+# SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+
+
 # Email configuration
-EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
-EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
+# Emails are sent through the Brevo API, not Django SMTP.
 
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip()
 
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "").strip()
+DEFAULT_FROM_NAME = os.getenv("DEFAULT_FROM_NAME", "KSMS Admin").strip()
 
-# Without this, smtplib has no default timeout - if Render's network
-# silently blocks outbound SMTP (common on PaaS free tiers), the
-# connection just hangs forever instead of failing, which triggers
-# Gunicorn's worker-timeout kill rather than a catchable exception.
-EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
-SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
-
+SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000").strip()
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

@@ -21,18 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 def send_via_brevo(subject, message, recipient_email, task_url=None, button_text="Click here to view task"):
-    """
-    Sends email via Brevo's HTTP API (port 443) instead of SMTP (port 587).
-    Render blocks outbound SMTP entirely on this plan, so send_mail()
-    always timed out - the HTTP API uses the same port as normal web
-    traffic, which isn't blocked. Returns True/False instead of raising,
-    so callers can show a success/warning message either way.
-
-    If task_url is given, an HTML button using button_text is appended
-    below the plain-text message (plain textContent is still sent too,
-    for email clients that don't render HTML).
-    """
-    api_key = os.getenv("BREVO_API_KEY")
+    
+    api_key = settings.BREVO_API_KEY
     if not api_key:
         logger.error("BREVO_API_KEY not set - cannot send email.")
         return False
@@ -55,7 +45,7 @@ def send_via_brevo(subject, message, recipient_email, task_url=None, button_text
             },
             json={
                 "sender": {
-                    "name": os.getenv("DEFAULT_FROM_NAME", "KSMS Admin"),
+                    "name": settings.DEFAULT_FROM_NAME,
                     "email": settings.DEFAULT_FROM_EMAIL,
                 },
                 "to": [{"email": recipient_email}],
