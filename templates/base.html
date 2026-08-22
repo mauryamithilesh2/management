@@ -128,21 +128,6 @@
 
 <main class="page-container">
 
-        {% if unread_notifications %}
-        <div class="notification-popup" id="notificationPopup">
-            <div class="notification-popup-inner">
-                <strong>New task assignment{{ unread_notifications|length|pluralize }}</strong>
-                <ul>
-                    {% for notification in unread_notifications %}
-                        <li>{{ notification.message }}</li>
-                    {% endfor %}
-                </ul>
-                <a href="{% url 'notification_list' %}" class="btn btn-primary">
-                    View
-                </a>
-            </div>
-        </div>
-    {% endif %}
     <!-- Django messages -->
     {% if messages %}
 

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Scheduled Tasks - Employee Task Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">Scheduled Tasks</h1>
+    <p class="card-subtitle">
+        Tasks scheduled to release at specific future dates and times.
+    </p>
+
+    <a href="{% url 'create_scheduled_task' %}" class="btn btn-primary">
+        + Add More Task
+    </a>
+</div>
+
+{% for batch in batches %}
+    <div class="card">
+        <h2 class="section-title">{{ batch.0.title }}</h2>
+        <p class="card-subtitle">
+            Created by {{ batch.0.created_by.get_full_name|default:batch.0.created_by.username }}
+        </p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Release Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in batch %}
+                    <tr>
+                        <td>{{ item.assigned_to.get_full_name|default:item.assigned_to.username }}</td>
+                        <td>{{ item.release_at|date:"N j, Y, P" }}</td>
+                        <td>
+                            {% if item.released %}
+                                <span class="badge badge-status-completed">Released</span>
+                                {% if item.released_task %}
+                                    <a href="{% url 'task_detail' item.released_task.id %}">View Task</a>
+                                {% endif %}
+                            {% elif item.on_hold %}
+                                <span class="badge badge-status-blocked">On Hold</span>
+                            {% else %}
+                                <span class="badge badge-status-todo">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not item.released %}
+                                <a href="{% url 'edit_scheduled_task' item.id %}" class="btn btn-secondary">
+                                    Edit
+                                </a>
+                                <form method="post" action="{% url 'toggle_task_hold' item.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-secondary">
+                                        {% if item.on_hold %}Resume{% else %}Hold{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% empty %}
+    <div class="card">
+        <p class="placeholder-note">No scheduled tasks yet.</p>
+    </div>
+{% endfor %}
+{% endblock %}

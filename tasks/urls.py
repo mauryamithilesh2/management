@@ -13,4 +13,8 @@ urlpatterns = [
     path("employees/", views.employee_overview, name="employee_overview"),
     path("employees/<int:employee_id>/", views.employee_task_detail, name="employee_task_detail"),
     path("<int:task_id>/notify/",views.notify_task_employee, name="notify_task_employee",),
+    path("scheduled/", views.scheduled_task_list, name="scheduled_task_list"),
+    path("scheduled/<int:scheduled_id>/toggle-hold/", views.toggle_task_hold, name="toggle_task_hold"),
+    path("scheduled/create/", views.create_scheduled_task, name="create_scheduled_task"),
+    path("scheduled/<int:scheduled_id>/edit/", views.edit_scheduled_task, name="edit_scheduled_task"),
 ]

@@ -145,3 +145,62 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.recipient} - {self.message}"
 
+class ScheduledTask(models.Model):
+    """
+    A task queued to be released to its assigned employee at a future
+    time - part of a batch where each employee gets their task 24h after
+    the previous one, instead of everyone getting it at once.
+
+    Only admins see these before release. Once released, a real Task row
+    is created (via the normal Task model) and the employee sees it
+    exactly like any other assigned task - ScheduledTask itself is just
+    the "waiting room."
+    """
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="scheduled_tasks",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_scheduled_tasks",
+    )
+
+    start_date = models.DateField()
+    deadline = models.DateField()
+    priority = models.CharField(max_length=20, choices=Task.Priority.choices, default=Task.Priority.MEDIUM)
+
+    release_at = models.DateTimeField(
+        help_text="When this task becomes a real, visible task for the employee.",
+    )
+    released = models.BooleanField(default=False)
+    on_hold = models.BooleanField(
+    default=False,
+    help_text="If true, this task will NOT auto-release even if its time has passed, until an admin resumes it.",
+    )
+    released_task = models.OneToOneField(
+        Task,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="scheduled_source",
+        help_text="The real Task created once this was released.",
+    )
+
+    batch_id = models.CharField(
+        max_length=36,
+        help_text="Groups tasks created together in one batch (same title, staggered release).",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["release_at"]
+
+    def __str__(self):
+        return f"{self.title} -> {self.assigned_to} (releases {self.release_at})"

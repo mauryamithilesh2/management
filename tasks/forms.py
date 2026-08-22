@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 import bleach
-from .models import Task, TaskUpdate
+from .models import Task, TaskUpdate, ScheduledTask
 
 User = get_user_model()
 
@@ -39,6 +39,7 @@ class AdminTaskCreateForm(forms.ModelForm):
     def clean_description(self):
         raw = self.cleaned_data.get("description", "")
         return bleach.clean(raw, tags=ALLOWED_TAGS, strip=True)
+
 
 class TaskFormBase(forms.ModelForm):
     """
@@ -144,3 +145,114 @@ class AdminTaskForm(TaskFormBase):
     def clean_description(self):
         raw = self.cleaned_data.get("description", "")
         return bleach.clean(raw, tags=ALLOWED_TAGS, strip=True)
+
+from django.utils import timezone
+class ScheduledTaskRowForm(forms.Form):
+    """
+    One row on the Schedule Task page: which employee, and exactly which
+    date and time they should receive it. Required - this page is only
+    for scheduling future sends; use the plain Assign Task page for
+    immediate assignment.
+    """
+
+    employee = forms.ModelChoiceField(
+        queryset=User.objects.filter(role=User.Role.EMPLOYEE, is_active=True),
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    release_at = forms.DateTimeField(
+        required=True,
+        widget=forms.DateTimeInput(
+            attrs={"class": "form-control", "type": "datetime-local"}
+        ),
+        help_text="Exact date and time this task should be sent (e.g. tomorrow 9:00 AM).",
+    )
+
+    def clean_release_at(self):
+        release_at = self.cleaned_data.get("release_at")
+        if release_at and release_at < timezone.now():
+            raise forms.ValidationError("Release time must be in the future.")
+        return release_at
+
+
+from django.forms import formset_factory
+
+ScheduledTaskFormSet = formset_factory(
+    ScheduledTaskRowForm, extra=1, min_num=1, validate_min=True
+)
+
+class ScheduledTaskDetailsForm(forms.Form):
+    """
+    The shared task details for a create-task batch - title, description,
+    dates, priority. Paired with ScheduledTaskFormSet (one row per
+    employee + their individual send time) on the same page.
+    """
+
+    title = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+    )
+    start_date = forms.DateField(
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+    deadline = forms.DateField(
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+    priority = forms.ChoiceField(
+        choices=Task.Priority.choices,
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    def clean_description(self):
+        raw = self.cleaned_data.get("description", "")
+        return bleach.clean(raw, tags=ALLOWED_TAGS, strip=True)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get("start_date")
+        deadline = cleaned_data.get("deadline")
+
+        if start_date and deadline and deadline < start_date:
+            raise forms.ValidationError("Deadline cannot be before the start date.")
+
+        return cleaned_data
+
+class ScheduledTaskEditForm(forms.ModelForm):
+    """
+    Edit a single pending ScheduledTask row - not the whole batch, just
+    this one employee's entry (title/description/dates/priority and
+    when it releases).
+    """
+
+    class Meta:
+        model = ScheduledTask
+        fields = ["title", "description", "start_date", "deadline", "priority", "release_at"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "start_date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "deadline": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "priority": forms.Select(attrs={"class": "form-control"}),
+            "release_at": forms.DateTimeInput(attrs={"class": "form-control", "type": "datetime-local"}),
+        }
+
+    def clean_description(self):
+        raw = self.cleaned_data.get("description", "")
+        return bleach.clean(raw, tags=ALLOWED_TAGS, strip=True)
+
+    def clean_release_at(self):
+        release_at = self.cleaned_data.get("release_at")
+        if release_at and release_at < timezone.now():
+            raise forms.ValidationError("Release time must be in the future.")
+        return release_at
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get("start_date")
+        deadline = cleaned_data.get("deadline")
+        if start_date and deadline and deadline < start_date:
+            raise forms.ValidationError("Deadline cannot be before the start date.")
+        return cleaned_data

@@ -1,6 +1,8 @@
 import logging
 import os
-
+import uuid
+from datetime import timedelta
+from django.utils import timezone
 import requests
 from django.conf import settings
 from django.contrib import messages
@@ -8,12 +10,14 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.html import strip_tags
-from .forms import AdminTaskForm,AdminTaskCreateForm, EmployeeTaskStatusForm, TaskUpdateForm
-from .models import Task, Notification, TaskUpdate
+from .forms import AdminTaskForm,AdminTaskCreateForm, EmployeeTaskStatusForm, TaskUpdateForm, ScheduledTaskEditForm, ScheduledTaskFormSet, ScheduledTaskDetailsForm
+from .models import Task, Notification, TaskUpdate,ScheduledTask
 from accounts.permissions import admin_required
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+
 
 def send_via_brevo(subject, message, recipient_email, task_url=None, button_text="Click here to view task"):
     """
@@ -101,9 +105,62 @@ def notify_employee(task, subject=None, message=None):
         task_url = f"{settings.SITE_URL}/tasks/{task.id}/"
         send_via_brevo(subject, message, employee.email, task_url=task_url)
 
+def release_due_scheduled_tasks():
+    """
+    Finds every ScheduledTask whose release_at has passed and hasn't
+    been released yet, creates the real Task for it, and notifies the
+    employee - exactly as if an admin had created that task directly at
+    that moment. Safe to call as often as needed; already-released rows
+    are skipped.
+    """
+    due = ScheduledTask.objects.filter(
+        released=False,
+        on_hold=False,
+        release_at__lte=timezone.now(),
+    )
+
+    for scheduled in due:
+        task = Task.objects.create(
+            title=scheduled.title,
+            description=scheduled.description,
+            assigned_to=scheduled.assigned_to,
+            created_by=scheduled.created_by,
+            start_date=scheduled.start_date,
+            deadline=scheduled.deadline,
+            status=Task.Status.TODO,
+            priority=scheduled.priority,
+        )
+
+        scheduled.released = True
+        scheduled.released_task = task
+        scheduled.save(update_fields=["released", "released_task"])
+
+        notify_employee(
+            task,
+            subject=f"New Task Assigned: {task.title}",
+            message=(
+                f'Hello {scheduled.assigned_to.get_full_name() or scheduled.assigned_to.username},\n\n'
+                f'You have been assigned a new task.\n\n'
+                f"Task: {task.title}\n"
+                f"Description: {strip_tags(task.description)}\n"
+                f"Start Date: {task.start_date}\n"
+                f"Deadline: {task.deadline}\n"
+                f"Priority: {task.get_priority_display()}\n"
+                f"Status: {task.get_status_display()}\n\n"
+                f"Please log in to KSMS to view the task details.\n\n"
+                f"Regards,\n"
+                f"KSMS Admin"
+            ),
+        )
+
 @login_required
 @admin_required
 def create_task(request):
+    """
+    Simple, immediate task creation - one or more employees, sent right
+    away. For scheduling tasks at specific future times, see
+    create_scheduled_task (the separate "Schedule Task" page).
+    """
     if request.method == "POST":
         form = AdminTaskCreateForm(request.POST)
 
@@ -167,6 +224,7 @@ def create_task(request):
             "is_admin": True,
         },
     )
+
 
 @login_required
 def task_list(request):
@@ -475,3 +533,130 @@ def employee_task_detail(request, employee_id):
         context,
     )
 
+@admin_required
+def scheduled_task_list(request):
+    """
+    Admin-only view of all scheduled task batches - pending and already
+    released. Grouped by batch_id so a batch of 5-6 staggered tasks shows
+    as one group, not a flat unrelated list.
+    """
+    scheduled = ScheduledTask.objects.select_related(
+        "assigned_to", "created_by", "released_task"
+    ).order_by("batch_id", "release_at")
+
+    batches = {}
+    for item in scheduled:
+        batches.setdefault(item.batch_id, []).append(item)
+
+    return render(
+        request,
+        "tasks/scheduled_task_list.html",
+        {"batches": batches.values()},
+    )
+
+@admin_required
+def toggle_task_hold(request, scheduled_id):
+    """
+    Pauses or resumes a pending (not yet released) ScheduledTask.
+    Held tasks are skipped by release_due_scheduled_tasks even if their
+    release_at has passed - resuming immediately makes them eligible for
+    release on the next check.
+    """
+    scheduled = get_object_or_404(ScheduledTask, pk=scheduled_id, released=False)
+
+    if request.method == "POST":
+        scheduled.on_hold = not scheduled.on_hold
+        scheduled.save(update_fields=["on_hold"])
+
+        status = "put on hold" if scheduled.on_hold else "resumed"
+        messages.success(
+            request,
+            f'Task "{scheduled.title}" for {scheduled.assigned_to.username} {status}.',
+        )
+
+    return redirect("scheduled_task_list")
+
+
+@admin_required
+def create_scheduled_task(request):
+    """
+    The dedicated "Schedule Task" page - shared task details plus one row
+    per employee, each with its own required send date/time. Unlike
+    create_task (immediate), every row here is scheduled for a specific
+    future moment and sits pending until then.
+    """
+    if request.method == "POST":
+        details_form = ScheduledTaskDetailsForm(request.POST)
+        formset = ScheduledTaskFormSet(request.POST)
+
+        if details_form.is_valid() and formset.is_valid():
+            batch_id = str(uuid.uuid4())
+            row_count = 0
+
+            for row in formset:
+                employee = row.cleaned_data.get("employee")
+                if not employee:
+                    continue
+
+                release_at = row.cleaned_data["release_at"]
+                ScheduledTask.objects.create(
+                    title=details_form.cleaned_data["title"],
+                    description=details_form.cleaned_data["description"],
+                    assigned_to=employee,
+                    created_by=request.user,
+                    start_date=details_form.cleaned_data["start_date"],
+                    deadline=details_form.cleaned_data["deadline"],
+                    priority=details_form.cleaned_data["priority"],
+                    release_at=release_at,
+                    batch_id=batch_id,
+                )
+                row_count += 1
+
+            # Release anything already due right now (e.g. a row left
+            # blank or set to a past/current time) without waiting for
+            # the periodic middleware check.
+            release_due_scheduled_tasks()
+
+            messages.success(
+                request,
+                f'Scheduled "{details_form.cleaned_data["title"]}" for '
+                f'{row_count} employee(s).'
+            )
+            return redirect("scheduled_task_list")
+
+    else:
+        details_form = ScheduledTaskDetailsForm()
+        formset = ScheduledTaskFormSet()
+
+    return render(
+        request,
+        "tasks/scheduled_task_form.html",
+        {
+            "details_form": details_form,
+            "formset": formset,
+        },
+    )
+
+@admin_required
+def edit_scheduled_task(request, scheduled_id):
+    """
+    Edit a single pending (not yet released) ScheduledTask - title,
+    description, dates, priority, and its release date/time. Only
+    reachable for tasks that haven't been sent yet.
+    """
+    scheduled = get_object_or_404(ScheduledTask, pk=scheduled_id, released=False)
+
+    if request.method == "POST":
+        form = ScheduledTaskEditForm(request.POST, instance=scheduled)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'"{scheduled.title}" updated.')
+            return redirect("scheduled_task_list")
+    else:
+        form = ScheduledTaskEditForm(instance=scheduled)
+
+    return render(
+        request,
+        "tasks/scheduled_task_edit.html",
+        {"form": form, "scheduled": scheduled},
+    )
